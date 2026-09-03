@@ -1,6 +1,10 @@
 # F1 Team Workload Management System
 
-A workload management and resource forecasting system for an F1 team. It tracks employee workload, maps employees to projects/tasks, measures current utilization, and forecasts resource usage for the next 30 days.
+A workload management and resource forecasting for an F1 team. It tracks employee workload, maps employees to projects/tasks, measures current utilization, and forecasts resource usage for the next 30 days.
+
+## Dashboard
+
+![F1 Team Workload Management Dashboard](dashboard.jpg)
 
 ## Features
 
