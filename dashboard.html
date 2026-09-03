@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>F1 Team Workload Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: -apple-system, Arial, sans-serif; margin: 0; padding: 24px; background: #0d1117; color: #e6edf3; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #8b949e; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #30363d; }
+  th { color: #8b949e; font-weight: 500; }
+  select { background: #21262d; color: #e6edf3; border: 1px solid #30363d; padding: 6px; border-radius: 4px; }
+  .status-Overloaded { color: #f85149; font-weight: 600; }
+  .status-Fully-Utilized { color: #d29922; }
+  .status-Partially-Available { color: #3fb950; }
+  .status-Available { color: #58a6ff; }
+  canvas { max-height: 360px; }
+</style>
+</head>
+<body>
+
+<h1>F1 Team Workload Dashboard</h1>
+<div class="sub">Current utilization (7-day rolling actual) and 30-day forecast</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>Current Utilization by Employee</h3>
+    <canvas id="utilChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>30-Day Forecast <select id="empSelect"></select></h3>
+    <canvas id="forecastChart"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Workload Table</h3>
+  <table id="workloadTable">
+    <thead>
+      <tr><th>Name</th><th>Role</th><th>Planned %</th><th>Actual %</th><th>Available %</th><th>Status</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+async function loadDashboard() {
+  const [workload, forecast] = await Promise.all([
+    fetch(`${API}/workload/current`).then(r => r.json()),
+    fetch(`${API}/workload/forecast`).then(r => r.json())
+  ]);
+
+  // --- Bar chart: current utilization ---
+  const colors = workload.map(w => {
+    if (w.status === "Overloaded") return "#f85149";
+    if (w.status === "Fully Utilized") return "#d29922";
+    if (w.status === "Partially Available") return "#3fb950";
+    return "#58a6ff";
+  });
+  new Chart(document.getElementById("utilChart"), {
+    type: "bar",
+    data: {
+      labels: workload.map(w => w.name),
+      datasets: [{ label: "Actual %", data: workload.map(w => w.actual_pct), backgroundColor: colors }]
+    },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: { x: { min: 0, suggestedMax: 120 } }
+    }
+  });
+
+  // --- Table ---
+  const tbody = document.querySelector("#workloadTable tbody");
+  tbody.innerHTML = workload.map(w => `
+    <tr>
+      <td>${w.name}</td><td>${w.role}</td>
+      <td>${w.planned_pct}</td><td>${w.actual_pct}</td><td>${w.availability_pct}</td>
+      <td class="status-${w.status.replace(" ", "-")}">${w.status}</td>
+    </tr>
+  `).join("");
+
+  // --- Forecast dropdown + chart ---
+  const select = document.getElementById("empSelect");
+  select.innerHTML = forecast.map(f => `<option value="${f.name}">${f.name}</option>`).join("");
+
+  let forecastChart;
+  function renderForecast(name) {
+    const emp = forecast.find(f => f.name === name);
+    const data = [
+      emp.forecast.day_7?.adjusted_pct ?? null,
+      emp.forecast.day_14?.adjusted_pct ?? null,
+      emp.forecast.day_30?.adjusted_pct ?? null
+    ];
+    if (forecastChart) forecastChart.destroy();
+    forecastChart = new Chart(document.getElementById("forecastChart"), {
+      type: "line",
+      data: {
+        labels: ["Day 7", "Day 14", "Day 30"],
+        datasets: [{ label: `${emp.name} — projected %`, data, borderColor: "#58a6ff", tension: 0.3, fill: false }]
+      },
+      options: { scales: { y: { min: 0, suggestedMax: 120 } } }
+    });
+  }
+
+  select.addEventListener("change", e => renderForecast(e.target.value));
+  renderForecast(forecast[0].name);
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
