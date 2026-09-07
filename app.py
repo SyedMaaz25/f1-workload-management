@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from workload_engine import get_conn, build_workload_report
 from forecast_engine import build_forecast_report
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 app = FastAPI(title="F1 Team Workload Management")
 
@@ -64,7 +65,4 @@ def forecast_for_employee(employee_name: str):
 
 @app.get("/")
 def root():
-    return {
-        "message": "F1 Team Workload Management API",
-        "endpoints": ["/employees", "/projects", "/workload/current", "/workload/forecast"]
-    }
+    return FileResponse("dashboard.html")
