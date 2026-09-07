@@ -1,7 +1,9 @@
 import sqlite3
 from datetime import date, timedelta
+import os
 
-DB_PATH = "f1_workload.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "f1_workload.db")
 
 ROLLING_WINDOW_DAYS = 7
 
